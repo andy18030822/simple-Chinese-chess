@@ -39,3 +39,8 @@ Piece::Piece(char fen)
 {
     *this = FenStringToPiece.at(fen);
 }
+
+bool Piece::equals_ignore_color(Piece piece) const 
+{
+    return (data & 0b111) == (piece.data & 0b111);
+}

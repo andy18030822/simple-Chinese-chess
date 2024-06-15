@@ -3,6 +3,7 @@
 #include "Board.hpp"
 #include "Move.hpp"
 #include <string>
+#include <unordered_set>
 
 int main()
 {
@@ -13,22 +14,41 @@ int main()
 	{
 		board.print_board();
 
-		do
-		{
-			std::string input_move;
-			std::cout << "input move: ";
-			std::cin >> input_move;
+		std::vector<Move> moves = board.get_legal_moves();
 
-			move = Move(input_move);
+		std::unordered_set<Move> set(moves.begin(), moves.end());
+		std::cout << set.size() << " available moves" << std::endl;
+
+		while (true)
+		{
+			std::string input;
+			std::cout << "input move: ";
+			std::cin >> input;
+
+			if (input == "undo")
+			{
+				if (board.undo_move()) std::cout << "success" << std::endl;
+				else std::cout << "no more moves to undo" << std::endl;
+				break;
+			}
+
+			move = Move(input);
 
 			if (not move.is_valid())
 			{
 				std::cout << "bad format" << std::endl;
+				continue;
 			}
-		}
-		while (not move.is_valid());
 
-		board.make_move(move);
+			if(set.find(move) == set.end())
+			{
+				std::cout << "illegal move" << std::endl;
+				continue;
+			}
+
+			board.make_move(move);
+			break;
+		}
 	}
 	
     return 0;
