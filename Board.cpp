@@ -2,6 +2,8 @@
 #include <iostream>
 #include <map>
 
+Board::Board() : Board("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR w") {}
+
 Board::Board(const std::string& fen_string)
 {
     int read = 0;
@@ -36,7 +38,24 @@ Board::Board(const std::string& fen_string)
 
 void Board::print_board()
 {
-    if(black_turn)
+    std::cout << "  A B C D E F G H I" << std::endl;
+
+    for (int y = 9; y >= 0; y--)
+    {
+        std::cout << y << " ";
+
+        for (int x = 0; x < 9; x++)
+        {
+            int index = x + y * Width;
+            std::cout << pieces[index].to_string();
+        }
+        
+        std::cout << ' ' << y << std::endl;
+    }
+
+    std::cout << "  A B C D E F G H I" << std::endl;
+
+    if (black_turn)
     {
         std::cout << "black turn" << std::endl;
     }
@@ -44,17 +63,10 @@ void Board::print_board()
     {
         std::cout << "red turn" << std::endl;
     }
+}
 
-    for (int y = 9; y >= 0; y--)
-    {
-        std::cout << y << " ";
-        for (int x = 0; x < 9; x++)
-        {
-            int index = x + y * Width;
-            std::cout << pieces[index].to_string();
-        }
-        
-        std::cout<<std::endl;
-    }
-    std::cout << "  A B C D E F G H I" << std::endl;
+void Board::make_move(Move move)
+{
+    pieces[move.get_end()] = pieces[move.get_begin()];
+    pieces[move.get_begin()] = Piece();
 }

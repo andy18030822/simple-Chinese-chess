@@ -1,6 +1,15 @@
 #pragma once
 #include <string>
 
+// 空   = 0
+// 卒兵 = 1  pP
+// 砲炮 = 2  cC
+// 車车 = 3  rR
+// 馬马 = 4  hH
+// 象相 = 5  eE
+// 仕士 = 6  aA
+// 将帅 = 7  kK
+
 class Piece 
 {
 public:
