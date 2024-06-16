@@ -18,6 +18,21 @@ int main()
 
 		std::unordered_set<Move> set(moves.begin(), moves.end());
 		std::cout << set.size() << " available moves" << std::endl;
+		std::cout << "evaluation: " << board.evaluate() << std::endl;
+
+		if (board.get_black_turn())
+		{
+			Move best_move = board.find_best_move();
+
+			if (not best_move.is_valid())
+			{
+				std::cout << "you win :(" << std::endl;
+				break;
+			}
+			
+			board.make_move(best_move);
+			continue;
+		}
 
 		while (true)
 		{
@@ -40,7 +55,7 @@ int main()
 				continue;
 			}
 
-			if(set.find(move) == set.end())
+			if (set.find(move) == set.end())
 			{
 				std::cout << "illegal move" << std::endl;
 				continue;

@@ -13,10 +13,16 @@ public:
     void print_board() const;
     void make_move(Move move);
     bool undo_move();
+    bool get_black_turn() { return black_turn; }
 
     std::vector<Move> get_moves() const;
     std::vector<Move> get_legal_moves();
     Position find_king(bool opponent) const;
+    uint64_t perft(int depth);
+
+    int evaluate() const;
+    Move find_best_move();
+    int find_highest_score(int depth);
 
     static constexpr int Width = 9;
     static constexpr int Height = 10;

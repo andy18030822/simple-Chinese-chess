@@ -4,6 +4,7 @@
 
 static constexpr Position Directions[4] = { {0, 1}, {1, 0}, {-1, 0}, {0, -1} };
 static constexpr Position Corners[4] = { {1, 1}, {1, -1}, {-1, 1}, {-1, -1} };
+static constexpr int WorstScore = -0x999999;
 
 Board::Board() : Board("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR w") {}
 
@@ -167,6 +168,84 @@ Position Board::find_king(bool opponent) const
     }
 
     return Position();
+}
+
+uint64_t Board::perft(int depth)
+{
+    assert(depth >= 1);
+
+    auto moves = get_legal_moves();
+    if (depth == 1) return moves.size();
+    
+    uint64_t nodes = 0;
+
+    for (Move legal_move : moves)
+    {
+        make_move(legal_move);
+        nodes += perft(depth - 1);
+        undo_move();
+    }
+
+    return nodes;
+}
+
+int Board::evaluate() const
+{
+    int score = 0;
+
+    for (Piece piece : pieces)
+    {
+        score += piece.get_evaluate_score();
+    }
+
+    return black_turn ? -score : score;
+}
+
+Move Board::find_best_move()
+{
+    int best_score = WorstScore;
+    Move best_move;
+
+    auto moves = get_legal_moves();
+
+    for (Move move : moves)
+    {
+        make_move(move);
+
+        //predict steps
+        int score = -find_highest_score(4);
+
+        if (score > best_score)
+        {
+            best_score = score;
+            best_move = move; 
+        }
+
+        undo_move();
+    }
+
+    return best_move;
+}
+
+int Board::find_highest_score(int depth)
+{
+    int highest_score = WorstScore;
+    if (depth == 0) return evaluate();
+
+    auto moves = get_legal_moves();
+
+    for (Move move : moves)
+    {
+        make_move(move);
+        int score = -find_highest_score(depth - 1);
+        if (highest_score < score)
+        {
+            highest_score = score;
+        }
+        undo_move();
+    }
+
+    return highest_score;
 }
 
 void Board::fill_pawn_moves(Position position, std::vector<Move>& moves) const
