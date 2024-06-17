@@ -11,3 +11,5 @@ int Position::get_index() const
     assert(is_valid());
     return x + y * Board::Width;
 }
+
+

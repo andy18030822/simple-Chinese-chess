@@ -21,8 +21,11 @@ public:
     uint64_t perft(int depth);
 
     int evaluate() const;
-    Move find_best_move();
-    int find_highest_score(int depth);
+    bool in_same_line_with_king(Piece piece,int x,int y) const;
+    Move find_best_move(int& score, int& depth);
+    int find_highest_score(int depth, int alpha, int beta);
+
+    std::vector<Move> find_best_moves(int depth, int alpha, int beta, bool prioritized, const std::vector<Move>& best, int& score);
 
     static constexpr int Width = 9;
     static constexpr int Height = 10;

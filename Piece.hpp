@@ -29,7 +29,7 @@ public:
 
     std::string to_string() const;
 
-    int get_evaluate_score();
+    int get_evaluate_score() const;
     
     static Piece pawn(bool black = false) { return Piece(1, black); }
     static Piece cannon(bool black = false) { return Piece(2, black); }

@@ -1,6 +1,7 @@
 #include "Board.hpp"
 #include <iostream>
 #include <algorithm>
+#include <chrono>
 
 static constexpr Position Directions[4] = { {0, 1}, {1, 0}, {-1, 0}, {0, -1} };
 static constexpr Position Corners[4] = { {1, 1}, {1, -1}, {-1, 1}, {-1, -1} };
@@ -74,6 +75,8 @@ void Board::make_move(Move move)
     move_history.emplace_back(move, pieces[end]);
 
     Piece move_piece = pieces[begin];
+    assert(not move_piece.is_empty());
+
     pieces[begin] = Piece();
     pieces[end] = move_piece;
 
@@ -189,64 +192,252 @@ uint64_t Board::perft(int depth)
     return nodes;
 }
 
+Position index_to_position(int i)
+{
+    Position position;
+    position.x = i % 9;
+    position.y = i / 10;
+}
+
 int Board::evaluate() const
 {
     int score = 0;
 
-    for (Piece piece : pieces)
+    for (int y = 0; y < Height; y++)
     {
-        score += piece.get_evaluate_score();
+        for(int x = 0; x < Width; x++)
+        {
+            int index = x + y * Width;
+            Piece piece = pieces[index];
+            int piece_score = piece.get_evaluate_score();
+            score += piece_score;
+            
+            //pawn
+            if(piece.equals_ignore_color(Piece::pawn()))
+            {
+                if(x == 4)
+                {
+                    score += piece.get_evaluate_score()/2;
+                }
+                if(y <= 4 == piece.is_black())
+                {
+                    score += piece.get_evaluate_score();
+                }
+            }
+
+            //cannon
+            if(piece.equals_ignore_color(Piece::cannon()))
+            {
+                if(in_same_line_with_king(piece,x,y))
+                    score += piece.get_evaluate_score()/5;
+                
+            }
+
+            //rook
+            if(piece.equals_ignore_color(Piece::rook()))
+            {
+                if(in_same_line_with_king(piece,x,y))
+                    score += piece.get_evaluate_score()/5;
+            }
+        }
+
     }
+
 
     return black_turn ? -score : score;
 }
 
-Move Board::find_best_move()
+bool Board::in_same_line_with_king(Piece piece,int x,int y) const
 {
-    int best_score = WorstScore;
-    Move best_move;
-
-    auto moves = get_legal_moves();
-
-    for (Move move : moves)
-    {
-        make_move(move);
-
-        //predict steps
-        int score = -find_highest_score(4);
-
-        if (score > best_score)
-        {
-            best_score = score;
-            best_move = move; 
-        }
-
-        undo_move();
-    }
-
-    return best_move;
+    Position king_position = piece.is_black() ? find_king(black_turn) : find_king(!black_turn);
+    return king_position.x == x || king_position.y == y;
 }
 
-int Board::find_highest_score(int depth)
+
+// Move Board::find_best_move()
+// {
+//     int best_score = WorstScore;
+//     Move best_move;
+
+//     auto moves = get_legal_moves();
+
+//     for (Move move : moves)
+//     {
+//         make_move(move);
+
+//         //predict steps
+//         int score = -find_highest_score(5, WorstScore, -best_score);
+
+//         if (score > best_score)
+//         {
+//             best_score = score;
+//             best_move = move; 
+//         }
+
+//         undo_move();
+//     }
+
+//     return best_move;
+// }
+
+
+Move Board::find_best_move(int& score, int& depth)
 {
-    int highest_score = WorstScore;
+    using Time = std::chrono::high_resolution_clock;
+    using ms = std::chrono::milliseconds;
+
+    std::vector<Move> best;
+
+    auto start = Time::now();
+
+    depth = 0;
+
+    while (std::chrono::duration_cast<ms>(Time::now() - start).count() < 1000)
+    {
+        best = find_best_moves(depth, WorstScore, -WorstScore, true, best, score);
+        depth++;
+
+        while (best.size() < depth) best.insert(best.begin(), Move());
+    }
+
+    return best.back();
+}
+
+int Board::find_highest_score(int depth, int alpha, int beta)
+{
     if (depth == 0) return evaluate();
 
     auto moves = get_legal_moves();
 
+    if (moves.empty()) return WorstScore;
+
     for (Move move : moves)
     {
         make_move(move);
-        int score = -find_highest_score(depth - 1);
-        if (highest_score < score)
-        {
-            highest_score = score;
-        }
+        int score = -find_highest_score(depth - 1, -beta, -alpha);
         undo_move();
+
+        if (score >= beta) return beta;
+        if (alpha < score) alpha = score;
     }
 
-    return highest_score;
+    return alpha;
 }
+
+std::vector<Move> Board::find_best_moves(int depth, int alpha, int beta, bool prioritized, const std::vector<Move>& best, int& score)
+{
+    if (depth < 0)
+    {
+        score = evaluate();
+        return {};
+    }
+
+    auto moves = get_legal_moves();
+
+    if (moves.empty())
+    {
+        score = WorstScore;
+        return {};
+    }
+
+    std::vector<Move> best_moves;
+
+    if (prioritized && depth > 0)
+    {
+        assert(alpha == WorstScore);
+        assert(beta == -WorstScore);
+
+        Move move = best[depth - 1];
+
+        if (not move.is_valid())
+        {
+            make_move(move);
+
+            int current_score;
+            auto current_moves = find_best_moves(depth - 1, -beta, -alpha, true, best, current_score);
+            current_score = -current_score;
+
+            undo_move();
+
+            alpha = current_score;
+            best_moves = current_moves;
+            best_moves.push_back(move);
+        }
+    }
+
+    for (Move move : moves)
+    {
+        make_move(move);
+
+        int current_score;
+        auto current_moves = find_best_moves(depth - 1, -beta, -alpha, false, best, current_score);
+        current_score = -current_score;
+
+        undo_move();
+
+        if (current_score >= beta)
+        {
+            score = beta;
+            return {}; //Should not be used by upper level
+        }
+
+        if (alpha < current_score)
+        {
+            alpha = current_score;
+            best_moves = current_moves;
+            best_moves.push_back(move);
+        }
+    }
+
+    score = alpha;
+    return best_moves;
+}
+
+// int Board::find_best_move(int depth, int alpha, int beta, bool prioritized, std::vector<Move>& best)
+// {
+//     if (depth < 0)
+//     {
+//         best = {};
+//         return evaluate();
+//     }
+
+//     auto moves = get_legal_moves();
+//     if (moves.empty()) return WorstScore;
+
+//     if (prioritized && depth < best.size())
+//     {
+//         assert(alpha == WorstScore);
+//         assert(beta == -WorstScore);
+//         Move move = best[depth];
+
+//         make_move(move);
+//         int score = -find_best_move(depth - 1, WorstScore, -WorstScore, true, best);
+//         undo_move();
+
+//         best.push_back(move);
+//         alpha = score;
+//     }
+
+//     for (Move move : moves)
+//     {
+//         std::vector<Move> current_best;
+
+//         make_move(move);
+//         int score = -find_best_move(depth - 1, -beta, -alpha, false, current_best);
+//         undo_move();
+
+//         if (score >= beta) return beta;
+
+//         if (alpha < score)
+//         {
+//             best = current_best;
+//             best.push_back(move);
+//             alpha = score;
+//         }
+//     }
+
+//     return alpha;
+// }
 
 void Board::fill_pawn_moves(Position position, std::vector<Move>& moves) const
 {

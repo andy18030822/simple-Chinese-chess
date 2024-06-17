@@ -22,13 +22,17 @@ int main()
 
 		if (board.get_black_turn())
 		{
-			Move best_move = board.find_best_move();
+			int score = 0;
+			int depth = 0;
+			Move best_move = board.find_best_move(score, depth);
 
 			if (not best_move.is_valid())
 			{
 				std::cout << "you win :(" << std::endl;
 				break;
 			}
+
+			std::cout << "found " << score << " after searching depth " << depth << std::endl;
 			
 			board.make_move(best_move);
 			continue;
@@ -42,7 +46,7 @@ int main()
 
 			if (input == "undo")
 			{
-				if (board.undo_move()) std::cout << "success" << std::endl;
+				if (board.undo_move() && board.undo_move()) std::cout << "success" << std::endl;
 				else std::cout << "no more moves to undo" << std::endl;
 				break;
 			}

@@ -50,12 +50,12 @@ bool Piece::equals_ignore_color(Piece piece) const
     return (data & 0b111) == (piece.data & 0b111);
 }
 
-int Piece::get_evaluate_score()
+int Piece::get_evaluate_score() const
 {
     static const std::vector<int> Score = 
     {
-        0, 100, 500, 800, 400, 250, 250, 0,
-        0, -100, -500, -800, -400, -250, -250, 0
+        0, 100, 500, 800, 400, 250, 250, 100000,
+        0, -100, -500, -800, -400, -250, -250, -100000
     };
     return Score[data];
 }
